@@ -1,0 +1,18 @@
+[project]
+name = "assignment-s6"
+version = "0.1.0"
+description = "Cognitive Architecture Agent"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pydantic>=2.7",
+    "mcp[server]>=0.1",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "tavily-python",
+    "duckduckgo-search",
+    "crawl4ai",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "jsonschema>=4.21",
+]

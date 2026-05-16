@@ -1,0 +1,2 @@
+#!/bin/bash
+uv run agent6.py "My mom's birthday is 15 May 2026. Remember that and give me a calendar reminder for two weeks before and on the day."

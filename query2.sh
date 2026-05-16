@@ -1,0 +1,2 @@
+#!/bin/bash
+uv run agent6.py "Find 3 family-friendly things to do in Tokyo this weekend. Check Saturday's weather forecast there and tell me which one is most appropriate."
