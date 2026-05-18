@@ -117,7 +117,10 @@ async def run(query: str) -> str:
 
         for it in range(1, MAX_ITERATIONS + 1):
             print(f"\n--- iter {it} ---")
-            hits = memory.read(query, history)
+            print("[orchestrator] requesting memory.read()")
+            hits = memory.read(query, history, run_id)
+            
+            print("[orchestrator] passing hits to perception.observe()")
             obs = perception.observe(query, hits, history, prior_goals, run_id)
             prior_goals = obs.goals
             
@@ -128,14 +131,17 @@ async def run(query: str) -> str:
             goal = obs.next_unfinished()
             attached = []
             if goal.attach_artifact_id and artifacts.exists(goal.attach_artifact_id):
+                print(f"[orchestrator] fetching attached artifact {goal.attach_artifact_id}")
                 attached.append((
                     goal.attach_artifact_id,
                     artifacts.get_bytes(goal.attach_artifact_id),
                 ))
 
+            print("[orchestrator] passing goal to decision.next_step()")
             out = decision.next_step(goal, hits, attached, history, tools)
 
             if out.answer:
+                print("[orchestrator] received answer from decision")
                 history.append({
                     "iter": it, "kind": "answer",
                     "goal_id": goal.id, "text": out.answer
@@ -145,7 +151,10 @@ async def run(query: str) -> str:
                 continue
 
             if out.tool_call:
+                print(f"[orchestrator] received tool_call '{out.tool_call.name}' from decision, passing to action.execute()")
                 result_text, art_id = await action.execute(session, out.tool_call)
+                
+                print(f"[orchestrator] recording tool outcome to memory")
                 memory.record_outcome(
                     tool_call=out.tool_call,
                     result_text=result_text,

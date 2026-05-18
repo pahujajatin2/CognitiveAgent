@@ -22,11 +22,16 @@ class DecisionLayer:
                     text_content = text_content[:30000] + "... [TRUNCATED]"
                 attached_context += f"--- Artifact {art_id} ---\n{text_content}\n\n"
 
-        hits_context = [{"id": h.id, "kind": h.kind, "descriptor": h.descriptor, "value": h.value} for h in hits]
+        import datetime
+        now = datetime.datetime.now().isoformat()
+        
+        hits_context = [{"id": h.id, "kind": h.kind, "descriptor": h.descriptor, "value": h.value, "created_at": h.created_at.isoformat()} for h in hits]
         
         prompt = f"""You are the Decision Layer of an AI agent.
 Your current goal is to execute the following task:
 GOAL: "{goal.text}"
+
+CURRENT SYSTEM TIME: {now}
 
 You must either:
 1. Provide a final ANSWER that satisfies the goal.
@@ -44,6 +49,7 @@ RUN HISTORY:
 {attached_context}
 
 INSTRUCTIONS:
+IMPORTANT: Check the `created_at` timestamp in MEMORY HITS. If the goal requires real-time or time-sensitive information (like weather or live events) and the memory hit is outdated, DO NOT use it to provide an answer. Instead, call a tool to fetch fresh information. For stable facts, old memory hits are fine to reuse.
 Output a JSON object matching this schema exactly. Provide either an 'answer' or a 'tool_call', but not both.
 {{
     "answer": "string or null",

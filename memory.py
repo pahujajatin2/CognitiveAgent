@@ -82,24 +82,47 @@ Respond with JSON matching this schema:
         except Exception as e:
             print(f"[memory.remember] error classifying query: {e}")
 
-    def read(self, query: str, history: list[dict]) -> list[MemoryItem]:
-        # For simplicity, return all facts and preferences, and tool_outcomes from the current run
+    def read(self, query: str, history: list[dict], run_id: str = None) -> list[MemoryItem]:
+        print(f"[memory]        reading memory for query: '{query}'")
         current_run_items = [
             item for item in self.items
             if item.kind in ["fact", "preference"]
         ]
         
-        # Add relevant tool outcomes
-        # In a real system, we might use embeddings or keyword matching
-        # Here we just return recent tool outcomes to give context
+        query_lower = query.lower()
+        
         for item in self.items:
             if item.kind == "tool_outcome":
-                # Usually tool outcomes are bound to the current run
-                current_run_items.append(item)
+                if run_id is None or item.run_id == run_id:
+                    current_run_items.append(item)
+                else:
+                    # Option B: Memory Recall for past tool outcomes
+                    args = item.value.get("arguments", {})
+                    is_relevant = False
+                    for v in args.values():
+                        if isinstance(v, str) and len(v) > 2:
+                            v_lower = v.lower()
+                            # 1. Exact substring match
+                            if v_lower in query_lower:
+                                is_relevant = True
+                                break
+                            # 2. Word overlap match (at least 50% of significant words match)
+                            words = [w for w in v_lower.replace("_", " ").split() if len(w) > 3]
+                            if words:
+                                match_count = sum(1 for w in words if w in query_lower)
+                                if match_count / len(words) >= 0.5:
+                                    is_relevant = True
+                                    break
+                    
+                    if is_relevant:
+                        print(f"[memory]        recalling past tool outcome '{item.descriptor}' from run {item.run_id}")
+                        current_run_items.append(item)
                 
+        print(f"[memory]        found {len(current_run_items)} relevant items")
         return current_run_items
 
     def record_outcome(self, tool_call: ToolCall, result_text: str, artifact_id: str | None, run_id: str, goal_id: str):
+        print(f"[memory]        recording tool outcome for '{tool_call.name}' (artifact: {artifact_id})")
         item = MemoryItem(
             id=uuid.uuid4().hex,
             kind="tool_outcome",

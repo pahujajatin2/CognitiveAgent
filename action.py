@@ -47,7 +47,9 @@ class ActionLayer:
                     content_text = resp.text
             else:
                 # Call the tool via MCP session
+                print(f"[action]        -> calling MCP server for '{tool_call.name}' with args {tool_call.arguments}")
                 result = await session.call_tool(tool_call.name, tool_call.arguments)
+                print(f"[action]        <- returned from MCP server tool '{tool_call.name}'")
                 
                 # MCP ToolResult Usually has 'content' which is a list of items
                 content_text = ""

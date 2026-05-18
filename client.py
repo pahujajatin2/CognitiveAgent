@@ -31,9 +31,18 @@ class LLM:
             "auto_route": auto_route,
         }
         body = {k: v for k, v in body.items() if v is not None}
+        print(f"[gateway]       -> req to {self.base_url}/v1/chat | auto_route={auto_route} provider={provider} model={model}")
         r = httpx.post(f"{self.base_url}/v1/chat", json=body, timeout=self.timeout)
         r.raise_for_status()
-        return r.json()
+        res = r.json()
+        
+        rd = res.get("router_decision")
+        if rd:
+            print(f"[gateway]       <- res from {res.get('provider')}/{res.get('model')} (latency: {res.get('latency_ms', 0)}ms) | router picked tier={rd.get('tier')} using {rd.get('router_provider')}/{rd.get('router_model')}")
+        else:
+            print(f"[gateway]       <- res from {res.get('provider')}/{res.get('model')} (latency: {res.get('latency_ms', 0)}ms)")
+            
+        return res
 
     def stream(self, prompt: str = None, *, messages=None, system=None,
                provider: str = None, model: str = None,
