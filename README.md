@@ -55,6 +55,25 @@ bash query2.sh
   [decision]      TOOL_CALL: web_search(...)
   [action]        -> calling MCP server for 'web_search'...
   ```
+  
+## 🌐 LLM Gateway Architecture
+
+The orchestrator relies on the `llm_gatewayV3` backend for reliable and optimized access to AI models. Key features of the gateway include:
+
+- **Supported Providers**: Natively integrates adapters for 7 providers, allowing seamless swapping and fallback across:
+  - `gemini` (Google Generative AI)
+  - `nvidia` (Nvidia NIMs)
+  - `groq` (High-speed LPU inference)
+  - `cerebras` (Wafer-scale high-speed inference)
+  - `openrouter` (Model aggregator)
+  - `github` (GitHub Models Inference)
+  - `ollama` (Local execution for privacy/offline support)
+
+- **Simultaneous Calls & Failover Strategy**: Built on asynchronous Python (FastAPI, `httpx`, `asyncio`), the gateway supports concurrent requests. It implements an automatic failover strategy: if a primary provider hits rate limits (429) or goes offline (503), the gateway instantly triggers a cooldown for that provider and routes the exact same request to the next provider in the fallback tier list, ensuring near-100% uptime for the cognitive agent.
+
+- **Dual-Pool Execution (Worker vs. Router)**:
+  - **Router Pool**: Fast, cheap models (e.g., `groq`, `cerebras`) tasked strictly with classifying prompt sizes (TINY, LARGE, HUGE). They output a single word and preserve the rate limits of your more powerful models.
+  - **Worker Pool**: Heavy-lifting models (e.g., `gemini`, `openrouter`) tasked with deep reasoning, strictly formatted JSON outputs, and handling massive artifact contexts passed by the memory/action layers.
 
 ## 📁 Repository Structure
 

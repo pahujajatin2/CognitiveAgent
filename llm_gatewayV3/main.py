@@ -458,16 +458,14 @@ async def chat(req: ChatRequest):
         except HTTPException:
             raise
         except Exception as e:
-            last_err = str(e)
-            secs, reason = _backoff_for(e, has_model_override=bool(req.model))
-            if secs > 0:
-                router.state[name].mark_unavailable(secs, reason)
+            last_err = f"exception: {repr(e)}"
+            all_attempts.append({"provider": name, "reason": last_err})
+            latency = int((time.time() - t0) * 1000)
             db.log_call(provider=name, model=req.model or provider.model,
-                        status="error", error=str(e)[:500],
-                        latency_ms=int((time.time() - t0) * 1000),
-                        prompt_chars=len(prompt_text),
-                        override=req.provider, attempted=_attempts_str(all_attempts))
-            all_attempts.append({"provider": name, "reason": f"exception: {str(e)[:120]}"})
+                        status="error", error=last_err[:500],
+                        latency_ms=latency, prompt_chars=len(prompt_text),
+                        override=req.provider, attempted=_attempts_str(all_attempts),
+                        call_role="worker")
             if explicit_override:
                 raise HTTPException(502, f"{name} failed: {e}")
             candidates = [c for c in candidates if c != name]
